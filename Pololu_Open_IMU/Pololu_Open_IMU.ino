@@ -17,7 +17,7 @@ Based on the Madgwick algorithm found at:
 #define GYRO_SCALE 0.07f
 #define betaDef		0.08f
 
-//To find the calibration values us the sketch included with the LSM303 driver from pololu
+//To find the calibration values use the sketch included with the LSM303 driver from pololu
 /*Change line 11 from
  
  compass.enableDefault();
@@ -32,12 +32,12 @@ Based on the Madgwick algorithm found at:
  
  */
 
-#define compassXMax 216.0f
-#define compassXMin -345.0f
-#define compassYMax 210.0f
-#define compassYMin -347.0f
-#define compassZMax 249.0f
-#define compassZMin -305.0f
+#define compassXMax 424.0f
+#define compassXMin -346.0f
+#define compassYMax 398.0f
+#define compassYMin -458.0f
+#define compassZMax 348.0f
+#define compassZMin -357.0f
 #define inverseXRange (float)(2.0 / (compassXMax - compassXMin))
 #define inverseYRange (float)(2.0 / (compassYMax - compassYMin))
 #define inverseZRange (float)(2.0 / (compassZMax - compassZMin))
@@ -72,7 +72,7 @@ int i;
 
 void setup(){
   Serial.begin(115200);
-  Serial.println("Keeping the device still and level during startup will yeild the best results");
+  Serial.println("Startup");
   Wire.begin();
   TWBR = ((F_CPU / 400000) - 16) / 2;//set the I2C speed to 400KHz
   IMUinit();
@@ -105,13 +105,11 @@ void loop(){
   if (millis() - printTimer > 50){
     printTimer = millis();
     GetEuler();
-    Serial.print(printTimer);
-    Serial.print(",");
     Serial.print(pitch);
     Serial.print(",");
-    Serial.print(roll);
+    Serial.print(yaw);
     Serial.print(",");
-    Serial.println(yaw);
+    Serial.println(roll);    
   }
 
 }
