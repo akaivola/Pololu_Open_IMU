@@ -1,7 +1,7 @@
 /*
 Based on the Madgwick algorithm found at:
  See: http://www.x-io.co.uk/open-source-imu-and-ahrs-algorithms/
- 
+
  This code inherits all relevant liscenses and may be freely modified and redistributed.
  The MinIMU v1 has a roughly +/- 10degree accuracy
  The MinIMU v2 has a roughly +/- 1 degree accuracy
@@ -19,17 +19,17 @@ Based on the Madgwick algorithm found at:
 
 //To find the calibration values use the sketch included with the LSM303 driver from pololu
 /*Change line 11 from
- 
+
  compass.enableDefault();
- 
- to 
- 
+
+ to
+
  compass.writeMagReg(LSM303_CRA_REG_M, 0x1C);
  compass.writeMagReg(LSM303_CRB_REG_M, 0x60);
- compass.writeMagReg(LSM303_MR_REG_M, 0x00);  
- 
+ compass.writeMagReg(LSM303_MR_REG_M, 0x00);
+
  Then put the calibration values below
- 
+
  */
 
 #define compassXMax 424.0f
@@ -70,6 +70,25 @@ float accToFilterX,accToFilterY,accToFilterZ;
 
 int i;
 
+// HAT structure
+typedef struct  {
+  int16_t  Begin;    // 2  Debut
+  uint16_t Cpt;      // 2  Compteur trame or Code info or error
+  float    rot[3];   // 12 [Y, P, R]    gyro
+  float    trans[3]; // 12 [x, y, z]    translation not implemented
+  int16_t  End;      // 2  Fin
+} _hat;              // total size =30bytes
+_hat hat;
+
+typedef struct
+{
+  byte  sig_HAT;
+  float rot_offset[3];
+  float trans_offset[3];
+} _eprom_save;
+_eprom_save eprom_save;
+
+
 void setup(){
   Serial.begin(115200);
   Serial.println("Startup");
@@ -78,12 +97,12 @@ void setup(){
   IMUinit();
   printTimer = millis();
   timer = micros();
+
+  initHAT();
 }
 
 
-
 void loop(){
-
   if (micros() - timer >= 5000){
     //this runs in 4ms on the MEGA 2560
     G_Dt = (micros() - timer)/1000000.0;
@@ -105,14 +124,26 @@ void loop(){
   if (millis() - printTimer > 50){
     printTimer = millis();
     GetEuler();
-    Serial.print(pitch);
-    Serial.print(",");
-    Serial.print(yaw);
-    Serial.print(",");
-    Serial.println(roll);    
+    //Serial.print(pitch);
+    //Serial.print(",");
+    //Serial.print(yaw);
+    //Serial.print(",");
+    //Serial.println(roll);
+    output_hatire();
   }
 
 }
+
+
+void initHAT() {
+  hat.Begin=0xAAAA;
+  hat.Cpt=0;
+  hat.End=0x5555;
+  hat.trans[0]=0;
+  hat.trans[1]=0;
+  hat.trans[2]=0;
+}
+
 
 void IMUinit(){
 
@@ -131,11 +162,11 @@ void IMUinit(){
 
   compass.writeMagReg(LSM303_CRA_REG_M, 0x1C);
   compass.writeMagReg(LSM303_CRB_REG_M, 0x60);
-  compass.writeMagReg(LSM303_MR_REG_M, 0x00);  
+  compass.writeMagReg(LSM303_MR_REG_M, 0x00);
 
   beta = betaDef;
   //calculate initial quaternion
-  //take an average of the gyro readings to remove the bias 
+  //take an average of the gyro readings to remove the bias
 
   for (i = 0; i < 500;i++){
     gyro.read();
@@ -164,7 +195,7 @@ void IMUinit(){
   offSetZ = gyroSumZ / 500.0;
   compass.read();
 
-  //calculate the initial quaternion 
+  //calculate the initial quaternion
   //these are rough values. This calibration works a lot better if the device is kept as flat as possible
   //find the initial pitch and roll
   pitch = ToDeg(fastAtan2(compass.a.x,sqrt(compass.a.y * compass.a.y + compass.a.z * compass.a.z)));
@@ -184,7 +215,7 @@ void IMUinit(){
     else{
       roll = 180.0 - roll;
     }
-  }  
+  }
 
   floatMagX = (compass.m.x - compassXMin) * inverseXRange - 1.0;
   floatMagY = (compass.m.y - compassYMin) * inverseYRange - 1.0;
@@ -197,10 +228,10 @@ void IMUinit(){
 
   if (yaw < 0){
     yaw += 360;
-  }  
-  Serial.println(pitch);
-  Serial.println(roll);
-  Serial.println(yaw);
+  }
+  //Serial.println(pitch);
+  //Serial.println(roll);
+  //Serial.println(yaw);
   //calculate the rotation matrix
   float cosPitch = cos(ToRad(pitch));
   float sinPitch = sin(ToRad(pitch));
@@ -503,12 +534,31 @@ void Smoothing(float *raw, float *smooth){
 }
 
 
+// HATIRE output
+void output_hatire() {
+// TODO this may not be necessary
+// Convert angles Euler en +-180 Degrees with zero center offset
+//  float ypr[3];
+//  ypr[0] = yaw;
+//  ypr[1] = pitch;
+//  ypr[2] = roll;
+//  for (int i = 0; i <= 2; i++) {
+//    hat.rot[i] = ypr[i];
+//    if (hat.rot[i] > 180) {
+//      hat.rot[i] = hat.rot[i] - 360;
+//    }
+//    if (hat.rot[i] < -180) {
+//      hat.rot[i] = hat.rot[i] + 360;
+//    }
+//  }
 
+  hat.rot[0] = yaw;
+  hat.rot[1] = pitch;
+  hat.rot[2] = roll;
 
-
-
-
-
-
-
-
+  Serial.write((byte*)&hat, 30);
+  hat.Cpt++;
+  if (hat.Cpt>999) {
+    hat.Cpt=0;
+  }
+}
