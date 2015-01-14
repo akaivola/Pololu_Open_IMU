@@ -124,11 +124,6 @@ void loop(){
   if (millis() - printTimer > 50){
     printTimer = millis();
     GetEuler();
-    //Serial.print(pitch);
-    //Serial.print(",");
-    //Serial.print(yaw);
-    //Serial.print(",");
-    //Serial.println(roll);
     output_hatire();
   }
 
@@ -536,22 +531,6 @@ void Smoothing(float *raw, float *smooth){
 
 // HATIRE output
 void output_hatire() {
-// TODO this may not be necessary
-// Convert angles Euler en +-180 Degrees with zero center offset
-//  float ypr[3];
-//  ypr[0] = yaw;
-//  ypr[1] = pitch;
-//  ypr[2] = roll;
-//  for (int i = 0; i <= 2; i++) {
-//    hat.rot[i] = ypr[i];
-//    if (hat.rot[i] > 180) {
-//      hat.rot[i] = hat.rot[i] - 360;
-//    }
-//    if (hat.rot[i] < -180) {
-//      hat.rot[i] = hat.rot[i] + 360;
-//    }
-//  }
-
   hat.rot[0] = yaw;
   hat.rot[1] = pitch;
   hat.rot[2] = roll;
